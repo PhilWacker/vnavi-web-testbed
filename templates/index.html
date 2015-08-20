@@ -3,6 +3,8 @@
 <title>OpenVNAVI Controller</title>
 <script type=text/javascript src="{{url_for('static', filename='jquery-1.11.3.min.js') }}"></script>
 <script type=text/javascript src="{{url_for('static', filename='png.js') }}"></script>
+<script type=text/javascript src="{{url_for('static', filename='jquery-ui.min.js') }}"></script>
+<link rel="stylesheet" href="{{url_for('static', filename='jquery-ui.min.css') }}">
 </head>
 
 <body>
@@ -48,6 +50,12 @@
 <h3>Downsampled depth image</h3>
 <div id="depthImgContainer"></div>
 <button id="updateButton">Update</button>
+
+<h3>User Input Slider</h3>
+<div id="flat-slider"></div>
+<input id="sliderChange" type="text" size = "4"/>
+<input id="sliderSlide" type="text" size = "4"/>
+<input id="sliderStart" type="text" size = "4"/>
 
 <!-- namespace -->
 <script type=text/javascript>
@@ -260,6 +268,29 @@
 
                 });
         });
+    });
+</script>
+
+<!-- Slider input -->
+<script type=text/javascript>
+    $(function() {
+        $('#flat-slider').slider({
+            orientation:'horizontal',
+            range: false,
+            min: 0,
+            max: 3000,
+            value: 50
+        });
+        $('#flat-slider').on("slidechange", function(event,ui){
+            $('#sliderChange').val(ui.value);
+        });
+        $('#flat-slider').on("slide", function(event,ui){
+            $('#sliderSlide').val(ui.value);
+        });
+        $('#flat-slider').on("slidestart", function(event,ui){
+            $('#sliderStart').val(ui.value);
+        });
+
     });
 </script>
 
