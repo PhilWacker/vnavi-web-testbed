@@ -26,13 +26,13 @@
 
 <h3>Manipulate</h3>
 <div>
-    Set all: <input id="setAllInput" type="text" size = "3"/>
+    Set all: <input id="setAllInput" type="text" size = "4"/>
     <button id="setAllButton">Set</button>
 </div>
 
 <div>
-    Find: <input id="findInput" type="text" size = "3"/>
-    Replace:  <input id="replaceInput" type="text" size = "3"/>
+    Find: <input id="findInput" type="text" size = "4"/>
+    Replace:  <input id="replaceInput" type="text" size = "4"/>
     <button id="replaceButton">Replace</button>
 </div>
 
@@ -60,9 +60,66 @@
 <!-- namespace -->
 <script type=text/javascript>
     $(function() {
+        var maxValue = 3000;
         window.vnavi = {};
-        window.vnavi.rowCount = 8
-        window.vnavi.colCount = 16
+        window.vnavi.rowCount = 8;
+        window.vnavi.colCount = 16;
+        window.vnavi.motorInputs = [];
+        window.vnavi.getCheckedValue = function(possibleValue){
+            var checkedValue = possibleValue;
+            if (isNaN(checkedValue))
+            {
+                return 0;
+            }else{
+                return Math.min(possibleValue, maxValue);
+            };
+        }
+        window.vnavi.setAllValues = function(newValue){
+            var valueToSet = window.vnavi.getCheckedValue(newValue);
+            $.each(window.vnavi.motorInputs, function(index, motorInput) {
+                motorInput.val(valueToSet);
+            });
+        }
+        window.vnavi.sendAllValues = function(){
+            var rowCount = window.vnavi.rowCount;
+            var colCount = window.vnavi.colCount;
+            var motorValues = [];
+            for (var row = 0; row < rowCount; row++)
+            {
+                rowValues = []
+                for (var col = 0; col < colCount; col++)
+                {
+                    var index = row * colCount + col;
+                    var motorValue = parseInt(window.vnavi.motorInputs[index].val());
+                    rowValues.push(motorValue);
+                }
+                motorValues.push(rowValues)
+            }
+
+            var modeValue = $("input[name=inputMode]:checked").val();
+
+            // data to be sent to the server
+            var data = {
+                "motors": motorValues,
+                "mode": modeValue
+            }
+
+            // sending data to server
+            var jqxhr = $.ajax({
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    dataType: 'json',
+                    url: $SCRIPT_ROOT + '/_send_motors'
+                })
+                .done(function(data) 
+                    {
+                        // console.log(data);
+                    }
+                );
+            // end bind()
+            return false;
+        }
     });
 </script>
 
@@ -85,7 +142,7 @@
     {
         for (var col = 0; col < colCount; col++)
         {
-            var aMotorInput = $("<input type='text' size = '3' value='0'/>");
+            var aMotorInput = $("<input type='text' size = '4' value='0'/>");
             motorInputs.push(aMotorInput);
             inputContainer.append(aMotorInput);
         }
@@ -93,47 +150,8 @@
     }
 
     // listen to submit button event
-    $('#sendButton').bind('click', function() {
-        var motorValues = [];
-        for (var row = 0; row < rowCount; row++)
-        {
-            rowValues = []
-            for (var col = 0; col < colCount; col++)
-            {
-                var index = row * colCount + col;
-                var motorValue = parseInt(motorInputs[index].val());
-                rowValues.push(motorValue);
-            }
-            motorValues.push(rowValues)
-        }
-
-        var modeValue = $("input[name=inputMode]:checked").val();
-
-        // data to be sent to the server
-        var data = {
-            "motors": motorValues,
-            "mode": modeValue
-        }
-
-        // sending data to server
-        var jqxhr = $.ajax({
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                url: $SCRIPT_ROOT + '/_send_motors'
-            })
-            .done(function(data) 
-                {
-                    // console.log(data);
-                }
-            );
-
-    
-
-        // end bind()
-        return false;
-    
+    $('#sendButton').bind('click', function(){
+        window.vnavi.sendAllValues();
     });
   });
 </script>
@@ -144,9 +162,10 @@
        
         $('#setAllButton').bind('click', function() {
             var inputValue = $("#setAllInput").val();
-            $.each(window.vnavi.motorInputs, function(index, motorInput) {
-                motorInput.val(inputValue);
-            });
+            //$.each(window.vnavi.motorInputs, function(index, motorInput) {
+            //    motorInput.val(inputValue);
+            //});
+            window.vnavi.setAllValues(inputValue);
 
             // end bind()
             return false;
@@ -239,11 +258,11 @@
         {
             for (var col = 0; col < colCount; col++)
             {
-                var aWidget = $("<input type='text' size = '3' value='0'/>");
+                var aWidget = $("<input type='text' size = '4' value='0'/>");
                 outPWMWidgets.push(aWidget);
                 outPWMDiv.append(aWidget);
 
-                var aWidget = $("<input type='text' size = '3' value='0'/>");
+                var aWidget = $("<input type='text' size = '4' value='0'/>");
                 depthWidgets.push(aWidget);
                 depthImgDiv.append(aWidget);
             }
@@ -286,6 +305,8 @@
         });
         $('#flat-slider').on("slide", function(event,ui){
             $('#sliderSlide').val(ui.value);
+            window.vnavi.setAllValues(ui.value);
+            window.vnavi.sendAllValues();
         });
         $('#flat-slider').on("slidestart", function(event,ui){
             $('#sliderStart').val(ui.value);
