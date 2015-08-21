@@ -317,6 +317,7 @@ User ID: <input id="userID" type="text" size="5"/><br/>
 <!-- Slider input -->
 <script type=text/javascript>
     $(function() {
+        var adjustedSliderRange = 1000;
         $('#flat-slider').slider({
             orientation:'horizontal',
             range: false,
@@ -345,9 +346,28 @@ User ID: <input id="userID" type="text" size="5"/><br/>
 
 
         $('#saveCurrentSliderValue').bind('click', function() {
+            var currentSliderValue = $('#flat-slider').slider("value");
             window.vnavi.currentNumberOfStoredValues++;
-            localStorage.setItem("user"+$('#userID').val()+"value"+window.vnavi.currentNumberOfStoredValues, $('#flat-slider').slider("value"));
+            localStorage.setItem("user"+$('#userID').val()+"value"+window.vnavi.currentNumberOfStoredValues, currentSliderValue);
             $('#numberOfStoredValues').val(window.vnavi.currentNumberOfStoredValues);
+
+            //randomize the range of the slider so that the user isn't focussing on the position of the slider
+            var newMin = currentSliderValue - (Math.random()*(adjustedSliderRange/2)+100);
+            var newMax = newMin + adjustedSliderRange;
+            var newStartingValue = currentSliderValue;
+            //move the starting value depending on the next task (moving until the user feels something vs. until she doesn't feel something)
+            if (window.vnavi.currentNumberOfStoredValues%2===0) {
+                //next task is moving until not feeling something
+                newStartingValue += 90;
+            }else{
+                //next task is moving until feeling something
+                newStartingValue -= 90;
+            };
+            //set new values for the slider
+            $('#flat-slider').slider('option', 'min', newMin);
+            $('#flat-slider').slider('option', 'max', newMax);
+            $('#flat-slider').slider('option', 'value', Math.round(newStartingValue));
+
         });
 
         $('#removeLastStoredValue').bind('click', function(){
