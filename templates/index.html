@@ -52,10 +52,16 @@
 <button id="updateButton">Update</button>
 
 <h3>User Input Slider</h3>
-<div id="flat-slider"></div>
+User ID: <input id="userID" type="text" size="5"/><br/>
+<div id="flat-slider"></div><br/>
 <input id="sliderChange" type="text" size = "4"/>
 <input id="sliderSlide" type="text" size = "4"/>
-<input id="sliderStart" type="text" size = "4"/>
+<input id="sliderStart" type="text" size = "4"/><br/>
+<button id="saveCurrentSliderValue">Save Current Value</button>
+<input id="numberOfStoredValues" type="text" size="3"/>
+<button id="removeLastStoredValue">Remove Last Stored Value</button></br>
+<button id="downloadAllStoredValues">Create CSV string with all values</button>
+<div id="resultArea"></div>
 
 <!-- namespace -->
 <script type=text/javascript>
@@ -65,6 +71,8 @@
         window.vnavi.rowCount = 8;
         window.vnavi.colCount = 16;
         window.vnavi.motorInputs = [];
+        window.vnavi.loadedPNG;
+        window.vnavi.currentNumberOfStoredValues = 0;
         window.vnavi.getCheckedValue = function(possibleValue){
             var checkedValue = possibleValue;
             if (isNaN(checkedValue))
@@ -79,6 +87,21 @@
             $.each(window.vnavi.motorInputs, function(index, motorInput) {
                 motorInput.val(valueToSet);
             });
+        }
+        window.vnavi.setValuesForPNGSpecifiedBoxes = function(newValue){
+            var valueToSet = window.vnavi.getCheckedValue(newValue);
+            var png = window.vnavi.loadedPNG;
+            var width = 16
+            var height = 8
+
+            for (var y = 0; y < height; y++){
+                for (var x = 0; x < width; x++){
+                    var colors = png.getPixel(x, y);
+                    if (colors[0] !== 0) {
+                        window.vnavi.motorInputs[y * width + x].val(valueToSet);
+                    };
+                }
+            }
         }
         window.vnavi.sendAllValues = function(){
             var rowCount = window.vnavi.rowCount;
@@ -199,6 +222,7 @@
             if (err) throw err;
             // console.log('image is <' + png.width + ',' + png.height +'>');
             // console.log(png);
+            window.vnavi.loadedPNG = png;
             drawOnCanvas(png);
         });
     };
@@ -305,12 +329,51 @@
         });
         $('#flat-slider').on("slide", function(event,ui){
             $('#sliderSlide').val(ui.value);
-            window.vnavi.setAllValues(ui.value);
+            //test if a png has been loaded
+            if (typeof window.vnavi.loadedPNG !== "undefined"){
+                //just update the specified values
+                window.vnavi.setValuesForPNGSpecifiedBoxes(ui.value);
+            }else{
+                //update all values
+                window.vnavi.setAllValues(ui.value);
+            }
             window.vnavi.sendAllValues();
         });
         $('#flat-slider').on("slidestart", function(event,ui){
             $('#sliderStart').val(ui.value);
         });
+
+
+        $('#saveCurrentSliderValue').bind('click', function() {
+            window.vnavi.currentNumberOfStoredValues++;
+            localStorage.setItem("user"+$('#userID').val()+"value"+window.vnavi.currentNumberOfStoredValues, $('#flat-slider').slider("value"));
+            $('#numberOfStoredValues').val(window.vnavi.currentNumberOfStoredValues);
+        });
+
+        $('#removeLastStoredValue').bind('click', function(){
+            localStorage.removeItem("user"+$('#userID').val()+"value"+window.vnavi.currentNumberOfStoredValues);
+            window.vnavi.currentNumberOfStoredValues--;
+            if (window.vnavi.currentNumberOfStoredValues < 0) {window.vnavi.currentNumberOfStoredValues = 0;};
+            $('#numberOfStoredValues').val(window.vnavi.currentNumberOfStoredValues);
+        });
+
+        $("#downloadAllStoredValues").click( function() {
+          var text = $('#userID').val()+", ";
+          var sum = 0;
+          for (var i = 1; i <= window.vnavi.currentNumberOfStoredValues; i++) {
+            var currentValue = localStorage.getItem("user"+$('#userID').val()+"value"+i); 
+            text = text + currentValue + ", ";
+            sum += parseInt(currentValue);
+            localStorage.removeItem("user"+$('#userID').val()+"value"+i);
+          };
+          var mean = sum / window.vnavi.currentNumberOfStoredValues;
+          text = text + mean;
+          $("#resultArea").append(text);
+          //var filename = "DataOfUser"+$('#userID').val();
+          //var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+          //saveAs(blob, filename+".txt");
+        });
+
 
     });
 </script>
