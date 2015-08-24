@@ -327,9 +327,6 @@ User ID: <input id="userID" type="text" size="5"/><br/>
         });
         $('#flat-slider').on("slidechange", function(event,ui){
             $('#sliderChange').val(ui.value);
-        });
-        $('#flat-slider').on("slide", function(event,ui){
-            $('#sliderSlide').val(ui.value);
             //test if a png has been loaded
             if (typeof window.vnavi.loadedPNG !== "undefined"){
                 //just update the specified values
@@ -339,6 +336,9 @@ User ID: <input id="userID" type="text" size="5"/><br/>
                 window.vnavi.setAllValues(ui.value);
             }
             window.vnavi.sendAllValues();
+        });
+        $('#flat-slider').on("slide", function(event,ui){
+            $('#sliderSlide').val(ui.value);
         });
         $('#flat-slider').on("slidestart", function(event,ui){
             $('#sliderStart').val(ui.value);
@@ -352,21 +352,21 @@ User ID: <input id="userID" type="text" size="5"/><br/>
             $('#numberOfStoredValues').val(window.vnavi.currentNumberOfStoredValues);
 
             //randomize the range of the slider so that the user isn't focussing on the position of the slider
-            var newMin = currentSliderValue - (Math.random()*(adjustedSliderRange/2)+100);
-            var newMax = newMin + adjustedSliderRange;
+            var newMin = Math.round(currentSliderValue - (Math.random()*(adjustedSliderRange/2)+100));
+            var newMax = Math.round(newMin + adjustedSliderRange);
             var newStartingValue = currentSliderValue;
             //move the starting value depending on the next task (moving until the user feels something vs. until she doesn't feel something)
             if (window.vnavi.currentNumberOfStoredValues%2===0) {
                 //next task is moving until not feeling something
-                newStartingValue += 90;
+                newStartingValue = Math.round(newStartingValue+90);
             }else{
                 //next task is moving until feeling something
-                newStartingValue -= 90;
+                newStartingValue = Math.round(newStartingValue-90);
             };
             //set new values for the slider
             $('#flat-slider').slider('option', 'min', newMin);
             $('#flat-slider').slider('option', 'max', newMax);
-            $('#flat-slider').slider('option', 'value', Math.round(newStartingValue));
+            $('#flat-slider').slider('option', 'value', newStartingValue);
 
         });
 
