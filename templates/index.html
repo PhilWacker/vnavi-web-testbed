@@ -454,17 +454,36 @@ Number of active motors:
         });
 
         $("#downloadAllStoredValues").click( function() {
-            var currentUserID = $('#userID').val();
-            if (localStorage.getItem('user'+currentUserID)!== null) {
-                var currentJSONString = localStorage.getItem('user'+currentUserID);
+            //go through all the values in the local Storage and create the output
+            for ( var i = 0, len = localStorage.length; i < len; ++i ) {
+                var currentJSONString = localStorage.getItem(localStorage.key(i));
                 var currentJSONObject = JSON.parse(currentJSONString);
-                var text = currentUserID+", ";
-                $.each(currentJSONObject.values, function(index, value){
-                    text = text + value + ", ";
-                });
-                text = text + currentJSONObject.mean + "<br/>";
-                $("#resultArea").append(text);
+                var currentTrialsObject = currentJSONObject.trials;
+                //iterate over all trial objects in for the current user
+                for (var currentTrialIdentifier in currentTrialsObject) {
+                    if (currentTrialsObject.hasOwnProperty(currentTrialIdentifier)) {
+                        var currentTrial = currentTrialsObject[currentTrialIdentifier];
+                        var text = currentJSONObject.userID+", "+currentTrialIdentifier+", ";
+                        $.each(currentTrial.values, function(index, value){
+                            text = text + value + ", ";
+                        });
+                        text = text + currentTrial.mean + "<br/>";
+                        $("#resultArea").append(text);
+                    }
+                }
             }
+
+            // var currentUserID = $('#userID').val();
+            // if (localStorage.getItem('user'+currentUserID)!== null) {
+            //     var currentJSONString = localStorage.getItem('user'+currentUserID);
+            //     var currentJSONObject = JSON.parse(currentJSONString);
+            //     var text = currentUserID+", ";
+            //     $.each(currentJSONObject.values, function(index, value){
+            //         text = text + value + ", ";
+            //     });
+            //     text = text + currentJSONObject.mean + "<br/>";
+            //     $("#resultArea").append(text);
+            // }
               //var filename = "DataOfUser"+$('#userID').val();
               //var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
               //saveAs(blob, filename+".txt");
