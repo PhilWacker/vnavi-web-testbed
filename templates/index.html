@@ -53,6 +53,14 @@
 
 <h3>User Input Slider</h3>
 User ID: <input id="userID" type="text" size="5"/><br/>
+Number of active motors: 
+<input type="radio" name="sizeOfActiveArea" value="all" checked>All</td>
+<input type="radio" name="sizeOfActiveArea" value=1>1x1</td>
+<input type="radio" name="sizeOfActiveArea" value=2>2x2</td>
+<input type="radio" name="sizeOfActiveArea" value=4>4x4</td>
+<input type="radio" name="sizeOfActiveArea" value=6>6x6</td>
+<input type="radio" name="sizeOfActiveArea" value=8>8x8</td>
+
 <div id="flat-slider"></div><br/>
 <input id="sliderChange" type="text" size = "4"/>
 <input id="sliderSlide" type="text" size = "4"/>
@@ -99,6 +107,25 @@ User ID: <input id="userID" type="text" size="5"/><br/>
                     var colors = png.getPixel(x, y);
                     if (colors[0] !== 0) {
                         window.vnavi.motorInputs[y * width + x].val(valueToSet);
+                    };
+                }
+            }
+        }
+        window.vnavi.setValuesForGivenSquare = function(squareSideLength, newValue){
+            var valueToSet = window.vnavi.getCheckedValue(newValue);
+            var halfSideLengthInt = parseInt(squareSideLength)/2;
+            var width = 16
+            var height = 8
+
+            for (var y = 0; y < height; y++){
+                for (var x = 0; x < width; x++){
+                    if ((x >= width/2-halfSideLengthInt) 
+                        && (x < width/2+halfSideLengthInt)
+                        && (y >= height/2-halfSideLengthInt)
+                        && (y < height/2+halfSideLengthInt)) {
+                        window.vnavi.motorInputs[y * width + x].val(valueToSet);
+                    }else{
+                        window.vnavi.motorInputs[y * width + x].val(0);
                     };
                 }
             }
@@ -318,20 +345,32 @@ User ID: <input id="userID" type="text" size="5"/><br/>
 <script type=text/javascript>
     $(function() {
         var adjustedSliderRange = 1000;
+
+        $('input[name=sizeOfActiveArea]').bind('click', function (ev) {
+            //reset slider after new area has been selected
+            $('#flat-slider').slider('option', 'min', 0);
+            $('#flat-slider').slider('option', 'max', 3000);
+            $('#flat-slider').slider('option', 'value', 200);
+        });
+
         $('#flat-slider').slider({
             orientation:'horizontal',
             range: false,
             min: 0,
             max: 3000,
-            value: 50
+            value: 200
         });
         $('#flat-slider').on("slidechange", function(event,ui){
             $('#sliderChange').val(ui.value);
+            var selectedActiveArea = $("input[name=sizeOfActiveArea]:checked").val();
             //test if a png has been loaded
             if (typeof window.vnavi.loadedPNG !== "undefined"){
                 //just update the specified values
                 window.vnavi.setValuesForPNGSpecifiedBoxes(ui.value);
-            }else{
+            }else if (selectedActiveArea !== "all"){
+                //update only area with the size that was selected
+                window.vnavi.setValuesForGivenSquare(selectedActiveArea, ui.value);
+            }else {
                 //update all values
                 window.vnavi.setAllValues(ui.value);
             }
@@ -348,32 +387,35 @@ User ID: <input id="userID" type="text" size="5"/><br/>
         $('#saveCurrentSliderValue').bind('click', function() {
             var currentSliderValue = $('#flat-slider').slider("value");
             var currentUserID = $('#userID').val();
+            var selectedActiveArea = $("input[name=sizeOfActiveArea]:checked").val();
             var currentJSONString;
             if (localStorage.getItem('user'+currentUserID)=== null) {
                 //create new JSON object
-                currentJSONString = '{"userID":'+currentUserID+',"values":[], "sum":0, "mean":0}';
+                var trialJSONString = '"values":[], "sum":0, "mean":0';
+                currentJSONString = '{"userID":'+currentUserID+', "trials":{"1":{'+trialJSONString+'}, "2":{'+trialJSONString+'}, "4":{'+trialJSONString+'}, "6":{'+trialJSONString+'}, "8":{'+trialJSONString+'}, "all":{'+trialJSONString+'}}}';
             } else{
                 currentJSONString = localStorage.getItem('user'+currentUserID);
             };
             var currentJSONObject = JSON.parse(currentJSONString);
-            currentJSONObject.values.push(currentSliderValue);
+            var currentTrialObject = currentJSONObject.trials[selectedActiveArea];
+            currentTrialObject.values.push(currentSliderValue);
 
             //update sum & mean
-            var newSum = parseInt(currentJSONObject.sum) + currentSliderValue;
-            var newMean = newSum / currentJSONObject.values.length;
-            currentJSONObject.sum = newSum;
-            currentJSONObject.mean = newMean;
+            var newSum = parseInt(currentTrialObject.sum) + currentSliderValue;
+            var newMean = newSum / currentTrialObject.values.length;
+            currentTrialObject.sum = newSum;
+            currentTrialObject.mean = newMean;
 
             currentJSONString = JSON.stringify(currentJSONObject);
             localStorage.setItem('user'+currentUserID,currentJSONString);
-            $('#numberOfStoredValues').val(currentJSONObject.values.length);
+            $('#numberOfStoredValues').val(currentTrialObject.values.length);
 
             //randomize the range of the slider so that the user isn't focussing on the position of the slider
             var newMin = Math.round(currentSliderValue - (Math.random()*(adjustedSliderRange/2)+100));
             var newMax = Math.round(newMin + adjustedSliderRange);
             var newStartingValue = currentSliderValue;
             //move the starting value depending on the next task (moving until the user feels something vs. until she doesn't feel something)
-            if (currentJSONObject.values.length%2===1) {
+            if (currentTrialObject.values.length%2===1) {
                 //next task is moving until not feeling something
                 newStartingValue = Math.round(newStartingValue+50);
             }else{
@@ -389,23 +431,25 @@ User ID: <input id="userID" type="text" size="5"/><br/>
 
         $('#removeLastStoredValue').bind('click', function(){
             var currentUserID = $('#userID').val();
+            var selectedActiveArea = parseInt($("input[name=sizeOfActiveArea]:checked").val());
             if (localStorage.getItem('user'+currentUserID)!== null) {
                 var currentJSONString = localStorage.getItem('user'+currentUserID);
                 var currentJSONObject = JSON.parse(currentJSONString);
+                var currentTrialObject = currentJSONObject.trials[selectedActiveArea];
 
                 //update sum and mean
-                var lastElement = parseInt(currentJSONObject.values.pop());
-                var newSum = parseInt(currentJSONObject.sum) - lastElement;
+                var lastElement = parseInt(currentTrialObject.values.pop());
+                var newSum = parseInt(currentTrialObject.sum) - lastElement;
                 // if remove is pressed again after nothing is in the array, the sum needs to be set to 0 to avoid a "null" entry
                 if (isNaN(newSum)) { newSum = 0};
-                var newMean = newSum / currentJSONObject.values.length;
-                currentJSONObject.sum = newSum;
-                currentJSONObject.mean = newMean;
+                var newMean = newSum / currentTrialObject.values.length;
+                currentTrialObject.sum = newSum;
+                currentTrialObject.mean = newMean;
                 
                 //currentJSONObject.values.splice(-1,1);
                 currentJSONString = JSON.stringify(currentJSONObject);
                 localStorage.setItem('user'+currentUserID,currentJSONString);
-                $('#numberOfStoredValues').val(currentJSONObject.values.length);
+                $('#numberOfStoredValues').val(currentTrialObject.values.length);
             };
         });
 
