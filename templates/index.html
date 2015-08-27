@@ -24,6 +24,9 @@
 <div id="motorsContainer"></div>
 <button id="sendButton">Send</button>
 <input  type="button" value="Start test run" id="startTestRun"></input>
+Baseline value: <input id="testRunBaselineValue" type="text" value="0" size = "4"/>
+Delay between steps: <input id="testRunStepDelay" type="text" value="500" size = "4"/>
+
 
 <h3>Manipulate</h3>
 <div>
@@ -82,6 +85,8 @@ Number of active motors:
         window.vnavi.motorInputs = [];
         window.vnavi.loadedPNG;
         window.vnavi.currentNumberOfStoredValues = 0;
+        window.vnavi.testRunStepDelayValue = 500;
+        window.vnavi.testRunBaselineValue = 0;
         window.vnavi.getCheckedValue = function(possibleValue){
             var checkedValue = possibleValue;
             if (isNaN(checkedValue))
@@ -209,7 +214,7 @@ Number of active motors:
     var circleThroughIndexArrayAndSetValues = function (indexArray, currentIndex){
         //if the stop button has not been pressed, set the next value and then call new iteration
         if ($("#startTestRun").val() === "Stop test run") {
-            window.vnavi.motorInputs[indexArray[currentIndex]].val(0);
+            window.vnavi.motorInputs[indexArray[currentIndex]].val(window.vnavi.testRunBaselineValue);
             if (currentIndex+1 < indexArray.length) {
                 //set new value and continue
                 currentIndex++;
@@ -217,13 +222,13 @@ Number of active motors:
                 window.vnavi.sendAllValues();
                 setTimeout(function () {
                     circleThroughIndexArrayAndSetValues(indexArray, currentIndex);
-                }, 500)
+                }, window.vnavi.testRunStepDelayValue)
             } else {
                 //reset the button value and stop iterating
                 $("#startTestRun").val("Start test run");
             };
         } else {
-            window.vnavi.motorInputs[indexArray[currentIndex]].val(0);
+            window.vnavi.motorInputs[indexArray[currentIndex]].val(window.vnavi.testRunBaselineValue);
             window.vnavi.sendAllValues();
         };
     }
@@ -232,6 +237,7 @@ Number of active motors:
         var theButton = $("#startTestRun");
         if (theButton.val() === "Start test run") {
             theButton.val("Stop test run");
+            window.vnavi.setAllValues(window.vnavi.testRunBaselineValue);
             //setup indexArray
 
             var indexArray = [];
@@ -247,11 +253,19 @@ Number of active motors:
             window.vnavi.sendAllValues();
             setTimeout(function () {
                     circleThroughIndexArrayAndSetValues(indexArray, 0);
-                }, 500)
+                }, window.vnavi.testRunStepDelayValue)
         } else {
             theButton.val("Start test run");
         };
     });
+
+    $("#testRunBaselineValue").on('change', function(){
+        window.vnavi.testRunBaselineValue = parseInt($("#testRunBaselineValue").val());
+        window.vnavi.setAllValues(window.vnavi.testRunBaselineValue);
+    })
+    $("#testRunStepDelay").on('change', function(){
+        window.vnavi.testRunStepDelayValue = parseInt($("#testRunStepDelay").val());
+    })
   });
 </script>
 
